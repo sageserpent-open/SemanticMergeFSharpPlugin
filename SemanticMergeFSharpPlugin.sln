@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SemanticMergeFSharpPlugin", "SemanticMergeFSharpPlugin\SemanticMergeFSharpPlugin.fsproj", "{1A3DC4CB-684F-4F3A-9E4A-287AB64E0181}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FSharpPlugin", "FSharpPlugin\FSharpPlugin.csproj", "{0ACBEABA-4B46-4CB1-A709-C821E588A917}"
 	GlobalSection(PlasticSccProperties) = preSolution
 		ControlledByPlastic = True
 		SccProvider = Plastic SCM
@@ -19,10 +19,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1A3DC4CB-684F-4F3A-9E4A-287AB64E0181}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1A3DC4CB-684F-4F3A-9E4A-287AB64E0181}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1A3DC4CB-684F-4F3A-9E4A-287AB64E0181}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1A3DC4CB-684F-4F3A-9E4A-287AB64E0181}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0ACBEABA-4B46-4CB1-A709-C821E588A917}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0ACBEABA-4B46-4CB1-A709-C821E588A917}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0ACBEABA-4B46-4CB1-A709-C821E588A917}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0ACBEABA-4B46-4CB1-A709-C821E588A917}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
