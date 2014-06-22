@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using StructureDiscovery;
 
 namespace FSharpPlugin
 {
@@ -38,14 +39,14 @@ namespace FSharpPlugin
 
             do
             {
-                var pathOfFileToBeParsed = Console.ReadLine();
+                var pathOfFileToBeProcessed = Console.ReadLine();
 
-                if ("end".Equals(pathOfFileToBeParsed, StringComparison.OrdinalIgnoreCase))
+                if ("end".Equals(pathOfFileToBeProcessed, StringComparison.OrdinalIgnoreCase))
                     return;
 
-                if (null == pathOfFileToBeParsed)
+                if (null == pathOfFileToBeProcessed)
                 {
-                    SignalFailedRequestToParseFile();
+                    SignalFailedRequestToProcessFile();
                     return;
                 }
 
@@ -53,28 +54,29 @@ namespace FSharpPlugin
 
                 if (null == pathOfFileForYamlResult)
                 {
-                    SignalFailedRequestToParseFile();
+                    SignalFailedRequestToProcessFile();
                     return;
                 }
 
                 try
                 {
+                    FileProcessor.DiscoverStructure(pathOfFileToBeProcessed, pathOfFileForYamlResult);
                 }
                 catch (Exception)
                 {
-                    SignalFailedRequestToParseFile();
+                    SignalFailedRequestToProcessFile();
                 }
 
-                SignalSuccessfulRequestToParseFile();
+                SignalSuccessfulRequestToProcessFile();
             } while (true);
         }
 
-        private static void SignalSuccessfulRequestToParseFile()
+        private static void SignalSuccessfulRequestToProcessFile()
         {
             Console.WriteLine("OK");
         }
 
-        private static void SignalFailedRequestToParseFile()
+        private static void SignalFailedRequestToProcessFile()
         {
             Console.WriteLine("KO");
         }

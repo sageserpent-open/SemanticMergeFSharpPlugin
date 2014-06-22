@@ -9,6 +9,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FSharpPlugin", "FSharpPlugi
 		SccProvider = Plastic SCM
 	EndGlobalSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "StructureDiscovery", "StructureDiscovery\StructureDiscovery.fsproj", "{B979A877-6819-4390-BE61-F79DE477B7C5}"
+	GlobalSection(PlasticSccProperties) = preSolution
+		ControlledByPlastic = True
+		SccProvider = Plastic SCM
+	EndGlobalSection
+EndProject
 Global
 	GlobalSection(PlasticSccProperties) = preSolution
 		ControlledByPlastic = True
@@ -23,6 +29,10 @@ Global
 		{0ACBEABA-4B46-4CB1-A709-C821E588A917}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0ACBEABA-4B46-4CB1-A709-C821E588A917}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0ACBEABA-4B46-4CB1-A709-C821E588A917}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B979A877-6819-4390-BE61-F79DE477B7C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B979A877-6819-4390-BE61-F79DE477B7C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B979A877-6819-4390-BE61-F79DE477B7C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B979A877-6819-4390-BE61-F79DE477B7C5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
