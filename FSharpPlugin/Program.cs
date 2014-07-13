@@ -41,14 +41,14 @@ namespace FSharpPlugin
             {
                 var pathOfFileToBeProcessed = Console.ReadLine();
 
-                if ("end".Equals(pathOfFileToBeProcessed, StringComparison.OrdinalIgnoreCase))
-                    return;
-
                 if (null == pathOfFileToBeProcessed)
                 {
                     SignalFailedRequestToProcessFile();
                     return;
                 }
+
+                if ("end".Equals(pathOfFileToBeProcessed, StringComparison.OrdinalIgnoreCase))
+                    return;
 
                 var pathOfFileForYamlResult = Console.ReadLine();
 
