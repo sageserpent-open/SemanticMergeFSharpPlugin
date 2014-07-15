@@ -103,5 +103,22 @@ module FileProcessor =
               ParsingErrorsDetected = Array.isEmpty parsingErrors |> not
               Children = sections
               ParsingErrors = parsingErrors }
-        
-        ()
+
+        let yamlForOverallStructure { Type = string
+                                      Name = name
+                                      LocationSpan = locationSpan
+                                      FooterSpan = footerSpan
+                                      ParsingErrorsDetected = parsingErrorsDetected
+                                      Children = children
+                                      ParsingErrors = parsingErrors } =
+            let rec yamlForSection indentationLevel
+                               section =
+                let rec yamlForContainer indentationLevel
+                                         container =
+                    String.Empty
+                let yamlForTerminal indentationLevel
+                                    container =
+                    String.Empty
+                String.Empty
+            String.Empty
+        String.Empty
