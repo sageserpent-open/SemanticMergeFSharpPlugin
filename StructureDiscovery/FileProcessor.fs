@@ -115,11 +115,33 @@ module FileProcessor =
             let yamlForEmptyCharacterSpan = "[0, -1]"
             let indent indentationLevel line = 
                 String.replicate indentationLevel " " + line
+            let indentPieces = Seq.map (indent 2)
             let joinPiecesOnSeparateLines (pieces: seq<string>) = 
                 String.Join("\n", pieces)
             
             let rec yamlForSection section = 
-                let rec yamlForContainer container = [ String.Empty ]
+                let rec yamlForContainer { Type = typeName; Name = name; 
+                                           LocationSpan = locationSpan; 
+                                           HeaderSpan = headerSpan; 
+                                           FooterSpan = footerSpan; 
+                                           Children = children } = 
+                    [ yield String.Format("- type : {0}", typeName)
+                      yield String.Format("  name : {0}", name)
+                      
+                      yield String.Format
+                                ("  locationSpan : {0}", 
+                                 yamlForLineSpan locationSpan)
+                      
+                      yield String.Format
+                                ("  headerSpan : {0}", yamlForEmptyCharacterSpan)
+                      
+                      yield String.Format
+                                ("  footerSpan : {0}", yamlForEmptyCharacterSpan)
+                      
+                      if not children.IsEmpty then 
+                          yield "  children :"
+                          yield! children 
+                                 |> Seq.collect (yamlForSection >> indentPieces) ]
                 
                 let yamlForTerminal { Type = typeName; Name = name; 
                                       LocationSpan = locationSpan; Span = span } = 
@@ -132,6 +154,7 @@ module FileProcessor =
                       
                       yield String.Format
                                 ("  span : {0}", yamlForEmptyCharacterSpan) ]
+                
                 match section with
                 | Container container -> yamlForContainer container
                 | Terminal terminal -> yamlForTerminal terminal
@@ -158,7 +181,6 @@ module FileProcessor =
                   yield String.Format
                             ("parsingErrorsDetected : {0}", 
                              parsingErrorsDetected)
-                  let indentPieces = Seq.map (indent 2)
                   if not children.IsEmpty then 
                       yield "children :"
                       yield! children 
