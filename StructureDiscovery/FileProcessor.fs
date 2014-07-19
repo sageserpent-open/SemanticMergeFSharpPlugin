@@ -51,7 +51,6 @@ module FileProcessor =
           Name: string // Path to file.
           LocationSpan: LineSpan
           FooterSpan: CharacterSpan
-          ParsingErrorsDetected: bool
           Children: List<Section>
           ParsingErrors: array<ParsingError> // TODO: be careful - the YAML specification would have this called 'ParsingError'.
                                              }
@@ -100,25 +99,62 @@ module FileProcessor =
               Name = pathOfInputFile
               LocationSpan = locationSpanForFile
               FooterSpan = emptyCharacterSpan
-              ParsingErrorsDetected = Array.isEmpty parsingErrors |> not
               Children = sections
               ParsingErrors = parsingErrors }
-
-        let yamlForOverallStructure { Type = string
-                                      Name = name
-                                      LocationSpan = locationSpan
-                                      FooterSpan = footerSpan
-                                      ParsingErrorsDetected = parsingErrorsDetected
-                                      Children = children
-                                      ParsingErrors = parsingErrors } =
-            let rec yamlForSection indentationLevel
-                               section =
-                let rec yamlForContainer indentationLevel
-                                         container =
-                    String.Empty
-                let yamlForTerminal indentationLevel
-                                    container =
-                    String.Empty
+        
+        let yamlForOverallStructure { Type = typeName; Name = name; 
+                                      LocationSpan = locationSpan; 
+                                      FooterSpan = footerSpan; 
+                                      Children = children; 
+                                      ParsingErrors = parsingErrors } = 
+            let yamlForLineSpan ((startLine, indexOfFirstCharacter), 
+                                 (endLine, indexOfOnePastLastCharacter)) = 
+                String.Format
+                    ("{{start: [{0},{1}], end: [{0},{1}]}}", startLine, 
+                     indexOfFirstCharacter, endLine, indexOfOnePastLastCharacter)
+            let yamlForEmptyCharacterSpan = "[0, -1]"
+            let indent indentationLevel line = 
+                String.replicate indentationLevel " " + line
+            let joinPiecesOnSeparateLines (pieces: seq<string>) = 
+                String.Join("\n", pieces)
+            
+            let rec yamlForSection section = 
+                let rec yamlForContainer container = [ String.Empty ]
+                let yamlForTerminal container = [ String.Empty ]
                 String.Empty
-            String.Empty
-        String.Empty
+            
+            let yamlForParsingError { Location = line, indexOfCharacter; 
+                                      Message = message } = 
+                let pieces = 
+                    [ yield String.Format
+                                ("Location: [{0}],[{1}]", line, indexOfCharacter)
+                      yield String.Format("Message: \"{0}\"", message) ]
+                joinPiecesOnSeparateLines pieces
+            
+            let pieces = 
+                [ yield "---"
+                  yield String.Format("type : {0}", typeName)
+                  yield String.Format("name : {0}", pathOfInputFile)
+                  
+                  yield String.Format
+                            ("locationSpan : {0}", yamlForLineSpan locationSpan)
+                  
+                  yield String.Format
+                            ("footerSpan : {0}", yamlForEmptyCharacterSpan)
+                  
+                  let parsingErrorsDetected = 
+                      not (parsingErrors |> Array.isEmpty)
+                  yield String.Format
+                            ("parsingErrorsDetected : {0}", 
+                             parsingErrorsDetected)
+                  if not children.IsEmpty then 
+                      yield "children :"
+                      yield! children |> List.map (yamlForSection >> indent 2)
+                  if parsingErrorsDetected then 
+                      yield "parsingError :"
+                      yield! parsingErrors 
+                             |> Array.map (yamlForParsingError >> indent 2) ]
+            
+            joinPiecesOnSeparateLines pieces
+        
+        ()
