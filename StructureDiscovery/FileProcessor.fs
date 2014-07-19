@@ -191,4 +191,4 @@ module FileProcessor =
             
             joinPiecesOnSeparateLines pieces
         
-        ()
+        File.WriteAllText(pathOfOutputFileForYamlResult, yamlForOverallStructure overallStructure)
