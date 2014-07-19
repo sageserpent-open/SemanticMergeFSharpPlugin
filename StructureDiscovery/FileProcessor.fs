@@ -120,16 +120,27 @@ module FileProcessor =
             
             let rec yamlForSection section = 
                 let rec yamlForContainer container = [ String.Empty ]
-                let yamlForTerminal container = [ String.Empty ]
-                String.Empty
+                
+                let yamlForTerminal { Type = typeName; Name = name; 
+                                      LocationSpan = locationSpan; Span = span } = 
+                    [ yield String.Format("- type : {0}", typeName)
+                      yield String.Format("  name : {0}", name)
+                      
+                      yield String.Format
+                                ("  locationSpan : {0}", 
+                                 yamlForLineSpan locationSpan)
+                      
+                      yield String.Format
+                                ("  span : {0}", yamlForEmptyCharacterSpan) ]
+                match section with
+                | Container container -> yamlForContainer container
+                | Terminal terminal -> yamlForTerminal terminal
             
             let yamlForParsingError { Location = line, indexOfCharacter; 
                                       Message = message } = 
-                let pieces = 
-                    [ yield String.Format
-                                ("Location: [{0}],[{1}]", line, indexOfCharacter)
-                      yield String.Format("Message: \"{0}\"", message) ]
-                joinPiecesOnSeparateLines pieces
+                [ yield String.Format
+                            ("Location: [{0}],[{1}]", line, indexOfCharacter)
+                  yield String.Format("Message: \"{0}\"", message) ]
             
             let pieces = 
                 [ yield "---"
@@ -147,13 +158,16 @@ module FileProcessor =
                   yield String.Format
                             ("parsingErrorsDetected : {0}", 
                              parsingErrorsDetected)
+                  let indentPieces = Seq.map (indent 2)
                   if not children.IsEmpty then 
                       yield "children :"
-                      yield! children |> List.map (yamlForSection >> indent 2)
+                      yield! children 
+                             |> Seq.collect (yamlForSection >> indentPieces)
                   if parsingErrorsDetected then 
                       yield "parsingError :"
                       yield! parsingErrors 
-                             |> Array.map (yamlForParsingError >> indent 2) ]
+                             |> Seq.collect 
+                                    (yamlForParsingError >> indentPieces) ]
             
             joinPiecesOnSeparateLines pieces
         
