@@ -51,7 +51,7 @@ module FileProcessor =
           LocationSpan: LineSpan
           FooterSpan: CharacterSpan
           Children: List<Section>
-          ParsingErrors: array<ParsingError> // TODO: be careful - the YAML specification would have this called 'ParsingError'.
+          ParsingErrors: array<ParsingError> // TODO: be careful - the YAML specification would have this be called 'ParsingError' - not the plural.
                                              }
     
     let DiscoverStructure(pathOfInputFile: string, 
