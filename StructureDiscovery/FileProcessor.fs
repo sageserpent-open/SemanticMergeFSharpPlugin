@@ -83,12 +83,14 @@ module FileProcessor =
             | Some(ParsedInput.ImplFile (ParsedImplFileInput (_, _, _, _, _, modulesOrNamespaces, _))) ->
                 let sectionFromModuleOrNamespace moduleOrNameSpace =
                     match moduleOrNameSpace with
-                        SynModuleOrNamespace (longIdentifierPieces, isModule, _, _, _, _, range) ->
+                        SynModuleOrNamespace (longIdentifierPieces, isModule, containedDeclarations, _, _, _, range) ->
+                            let rangeOfContainedDeclarations = (containedDeclarations |> List.map (fun declaration -> declaration.Range) |> List.reduce unionRanges)
+                            let overallRange = unionRanges rangeOfContainedDeclarations range
                             let container =
                                 {
                                     Type = if isModule then "module" else "namespace"
                                     Name = longIdentifierFrom longIdentifierPieces
-                                    LocationSpan = (range.StartLine, range.StartColumn), (range.EndLine, range.EndColumn)
+                                    LocationSpan = (overallRange.StartLine, overallRange.StartColumn), (overallRange.EndLine, overallRange.EndColumn)
                                     HeaderSpan = emptyCharacterSpan
                                     FooterSpan = emptyCharacterSpan
                                     Children = List.Empty
@@ -123,7 +125,7 @@ module FileProcessor =
             let yamlForLineSpan ((startLine, indexOfFirstCharacter), 
                                  (endLine, indexOfOnePastLastCharacter)) = 
                 String.Format
-                    ("{{start: [{0},{1}], end: [{0},{1}]}}", startLine, 
+                    ("{{start: [{0},{1}], end: [{2},{3}]}}", startLine, 
                      indexOfFirstCharacter, endLine, indexOfOnePastLastCharacter)
             let yamlForEmptyCharacterSpan = "[0, -1]"
             let indent indentationLevel line = 

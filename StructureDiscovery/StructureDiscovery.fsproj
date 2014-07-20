@@ -12,6 +12,10 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.3.1.0</TargetFSharpCoreVersion>
     <Name>StructureDiscovery</Name>
+    <SccProjectName>Plastic SCM</SccProjectName>
+    <SccProvider>Plastic SCM Source Control Service:{774e58ba-f1b9-40a7-b676-834fa2c220fe}</SccProvider>
+    <SccAuxPath>Plastic SCM</SccAuxPath>
+    <SccLocalPath>Plastic SCM</SccLocalPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -52,6 +56,7 @@
     <Compile Include="FileProcessor.fs" />
     <None Include="packages.config" />
     <None Include="app.config" />
+    <None Include="TestBed.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Compiler.Service">
