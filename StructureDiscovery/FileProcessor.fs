@@ -77,9 +77,24 @@ module FileProcessor =
                                                  let message = error.Message
                                                  { Location = location
                                                    Message = message })
+            let longIdentifierFrom (longIdentifierPieces: LongIdent) =
+                String.Join(".", longIdentifierPieces)
             match resultsFromParsing.ParseTree with
-            | Some(ParsedInput.ImplFile _) -> 
-                (List.empty: List<Section>), parsingErrors
+            | Some(ParsedInput.ImplFile (ParsedImplFileInput (_, _, _, _, _, modulesOrNamespaces, _))) ->
+                let sectionFromModuleOrNamespace moduleOrNameSpace =
+                    match moduleOrNameSpace with
+                        SynModuleOrNamespace (longIdentifierPieces, isModule, _, _, _, _, range) ->
+                            let container =
+                                {
+                                    Type = if isModule then "module" else "namespace"
+                                    Name = longIdentifierFrom longIdentifierPieces
+                                    LocationSpan = (range.StartLine, range.StartColumn), (range.EndLine, range.EndColumn)
+                                    HeaderSpan = emptyCharacterSpan
+                                    FooterSpan = emptyCharacterSpan
+                                    Children = List.Empty
+                                }
+                            Container container
+                modulesOrNamespaces |> List.map sectionFromModuleOrNamespace, parsingErrors
             | _ -> 
                 raise 
                     (Exception
