@@ -47,8 +47,7 @@ module FileProcessor =
           Message: string }
     
     type OverallStructure = 
-        { Type: string // Must be "file'.
-          Name: string // Path to file.
+        { Name: string // Path to file.
           LocationSpan: LineSpan
           FooterSpan: CharacterSpan
           Children: List<Section>
@@ -95,14 +94,13 @@ module FileProcessor =
                 snd (Seq.last sections).LocationSpan
         
         let overallStructure = 
-            { Type = "file"
-              Name = pathOfInputFile
+            { Name = pathOfInputFile
               LocationSpan = locationSpanForFile
               FooterSpan = emptyCharacterSpan
               Children = sections
               ParsingErrors = parsingErrors }
         
-        let yamlForOverallStructure { Type = typeName; Name = name; 
+        let yamlForOverallStructure { Name = name; 
                                       LocationSpan = locationSpan; 
                                       FooterSpan = footerSpan; 
                                       Children = children; 
@@ -167,7 +165,7 @@ module FileProcessor =
             
             let pieces = 
                 [ yield "---"
-                  yield String.Format("type : {0}", typeName)
+                  yield "type : file"
                   yield String.Format("name : {0}", pathOfInputFile)
                   
                   yield String.Format
