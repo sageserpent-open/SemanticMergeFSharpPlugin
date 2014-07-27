@@ -51,7 +51,7 @@ module FileProcessor =
           LocationSpan: LineSpan
           FooterSpan: CharacterSpan
           Children: List<Section>
-          ParsingErrors: array<ParsingError> // TODO: be careful - the YAML specification would have this be called 'ParsingError' - not the plural.
+          ParsingErrors: array<ParsingError>
                                              }
     
     let DiscoverStructure(pathOfInputFile: string, 
@@ -177,8 +177,8 @@ module FileProcessor =
             let yamlForParsingError { Location = line, indexOfCharacter; 
                                       Message = message } = 
                 [ yield String.Format
-                            ("Location: [{0}],[{1}]", line, indexOfCharacter)
-                  yield String.Format("Message: \"{0}\"", message) ]
+                            ("- location: [{0},{1}]", line, indexOfCharacter)
+                  yield String.Format("  message: \"{0}\"", message.Replace("\"", "\\\"")) ]
             
             let pieces = 
                 [ yield "---"
@@ -200,10 +200,13 @@ module FileProcessor =
                       yield "children :"
                       yield! children |> yamlForSubpieces yamlForSection
                   if parsingErrorsDetected then 
-                      yield "parsingError :"
+                      yield "parsingErrors :"
                       yield! parsingErrors 
                              |> yamlForSubpieces yamlForParsingError ]
             
             joinPiecesOnSeparateLines pieces
         
-        File.WriteAllText(pathOfOutputFileForYamlResult, yamlForOverallStructure overallStructure)
+        let yamlResult =
+            yamlForOverallStructure overallStructure
+        File.WriteAllText(pathOfOutputFileForYamlResult, yamlResult)
+        File.WriteAllText(String.Format(@"F:\{0}.txt", Path.GetFileNameWithoutExtension(pathOfInputFile)), yamlResult)
