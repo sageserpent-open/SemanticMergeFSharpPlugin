@@ -70,24 +70,13 @@ module FileProcessor =
             [| for lineMatch in lineMatches do
                    yield lineMatch.Index |]
         
-        //        let lineAndColumnIndicesFor characterPosition =
-        //            let searchResult = Array.BinarySearch(onePastLineBreakPositionsInInputFile, characterPosition)
-        //            let lineIndex =
-        //                if 0 > searchResult
-        //                then
-        //                    ~~~searchResult - 1
-        //                else
-        //                    searchResult
-        //            lineIndex, characterPosition - onePastLineBreakPositionsInInputFile.[lineIndex]
-        let totalNumberOfLines = onePastLineBreakPositionsInInputFile.Length
-        let characterSpanFor (range: range) = 
-            let characterPositionFor oneRelativeLinePosition columnIndex = 
-                let onePastLineBreakPositionInInputFile = 
-                    onePastLineBreakPositionsInInputFile.[oneRelativeLinePosition - 1]
-                onePastLineBreakPositionInInputFile + columnIndex
-            characterPositionFor range.StartLine range.StartColumn, 
-            characterPositionFor range.EndLine range.EndColumn - 1
+        let characterPositionFor (position: pos) = 
+            let onePastLineBreakPositionInInputFile = 
+                onePastLineBreakPositionsInInputFile.[position.Line - 1]
+            onePastLineBreakPositionInInputFile + position.Column
         
+        let characterSpanFor (range: range) = 
+            characterPositionFor range.Start, characterPositionFor range.End - 1
         let locationSpanFor (range: range) = 
             (range.StartLine, range.StartColumn), 
             (range.EndLine, range.EndColumn)
@@ -120,13 +109,10 @@ module FileProcessor =
                 let sectionFromModuleOrNamespace moduleOrNameSpace = 
                     match moduleOrNameSpace with
                     | SynModuleOrNamespace(longIdentifierPieces, isModule, 
-                                           containedDeclarations, _, _, _, overallRange) -> 
-//                        let rangeOfContainedDeclarations = 
-//                            (containedDeclarations
-//                             |> List.map (fun declaration -> declaration.Range)
-//                             |> List.reduce unionRanges)
-
-                        let headerRange = mkRange String.Empty overallRange.Start (Seq.last longIdentifierPieces).idRange.End
+                                           containedDeclarations, _, _, _, 
+                                           overallRange) -> 
+                        let endOfTheModuleNamePosition = 
+                            (Seq.last longIdentifierPieces).idRange.End
                         
                         let container = 
                             { Type = 
@@ -134,7 +120,11 @@ module FileProcessor =
                                   else "namespace"
                               Name = longIdentifierFrom longIdentifierPieces
                               LocationSpan = locationSpanFor overallRange
-                              HeaderSpan = characterSpanFor headerRange
+                              HeaderSpan = 
+                                  characterPositionFor overallRange.Start, 
+                                  
+                                  characterPositionFor 
+                                      endOfTheModuleNamePosition - 1
                               FooterSpan = emptyCharacterSpan
                               Children = List.Empty }
                         Container container
@@ -200,7 +190,8 @@ module FileProcessor =
                                  yamlForCharacterSpan headerSpan)
                       
                       yield String.Format
-                                ("  footerSpan : {0}", yamlForEmptyCharacterSpan)
+                                ("  footerSpan : {0}", 
+                                 yamlForCharacterSpan footerSpan)
                       if not children.IsEmpty then 
                           yield "  children :"
                           yield! children |> yamlForSubpieces yamlForSection ]
