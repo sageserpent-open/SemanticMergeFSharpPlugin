@@ -129,6 +129,7 @@ module FileProcessor =
                                         match patternOnLhsOfBinding with
                                         | SynPat.Named(_, name, _, _, _) -> 
                                             name.idText
+                                        | SynPat.LongIdent (name, _, _, _, _, _) -> textFor name.Range
                                         | _ -> textFor binding.RangeOfHeadPat
                                     
                                     let overallRange = 
