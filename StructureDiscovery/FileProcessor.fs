@@ -106,11 +106,13 @@ module FileProcessor =
             | Some(ParsedInput.ImplFile(ParsedImplFileInput(_, _, _, _, _, 
                                                             modulesOrNamespaces, 
                                                             _))) -> 
-                let sectionFromModuleOrNamespace moduleOrNameSpace = 
+                let sectionFromModuleOrNamespace moduleOrNameSpace =
+                    let overallRange =
+                        (moduleOrNameSpace: SynModuleOrNamespace).Range
                     match moduleOrNameSpace with
                     | SynModuleOrNamespace(longIdentifierPieces, isModule, 
                                            containedDeclarations, _, _, _, 
-                                           overallRange) -> 
+                                           _) -> 
                         let endOfTheModuleNamePosition = 
                             (Seq.last longIdentifierPieces).idRange.End
                         
