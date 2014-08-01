@@ -81,6 +81,13 @@ module FileProcessor =
             (range.StartLine, range.StartColumn), 
             (range.EndLine, range.EndColumn)
         
+        let textFor (range: range) = 
+            let startCharacterPosition = characterPositionFor range.Start
+            let onePastEndCharacterPosition = characterPositionFor range.End
+            contentsOfInputFile.Substring
+                (startCharacterPosition, 
+                 onePastEndCharacterPosition - startCharacterPosition)
+        
         let sections, parsingErrors = 
             let fakeProjectOptions = 
                 interactiveChecker.GetProjectOptionsFromScript
@@ -106,13 +113,40 @@ module FileProcessor =
             | Some(ParsedInput.ImplFile(ParsedImplFileInput(_, _, _, _, _, 
                                                             modulesOrNamespaces, 
                                                             _))) -> 
-                let sectionFromModuleOrNamespace moduleOrNameSpace =
-                    let overallRange =
+                let sectionFromModuleOrNamespace moduleOrNameSpace = 
+                    let overallRange = 
                         (moduleOrNameSpace: SynModuleOrNamespace).Range
                     match moduleOrNameSpace with
                     | SynModuleOrNamespace(longIdentifierPieces, isModule, 
-                                           containedDeclarations, _, _, _, 
-                                           _) -> 
+                                           containedDeclarations, _, _, _, _) -> 
+                        let childrenFrom declaration = 
+                            match declaration with
+                            | SynModuleDecl.Let(_, bindings, _) -> 
+                                let childFrom (Binding(_, _, _, _, _, _, _, 
+                                                       patternOnLhsOfBinding, _, 
+                                                       _, _, _) as binding: SynBinding) = 
+                                    let name = 
+                                        match patternOnLhsOfBinding with
+                                        | SynPat.Named(_, name, _, _, _) -> 
+                                            name.idText
+                                        | _ -> textFor binding.RangeOfHeadPat
+                                    
+                                    let overallRange = 
+                                        binding.RangeOfBindingAndRhs
+                                    let patternRange = binding.RangeOfHeadPat
+                                    
+                                    let terminal = 
+                                        { Type = "let"
+                                          Name = name
+                                          LocationSpan = 
+                                              locationSpanFor overallRange
+                                          Span = characterSpanFor overallRange }
+                                    Terminal terminal
+                                bindings |> List.map childFrom
+                            | _ -> List.empty
+                        
+                        let children = 
+                            containedDeclarations |> List.collect childrenFrom
                         let endOfTheModuleNamePosition = 
                             (Seq.last longIdentifierPieces).idRange.End
                         
@@ -128,7 +162,7 @@ module FileProcessor =
                                   characterPositionFor 
                                       endOfTheModuleNamePosition - 1
                               FooterSpan = emptyCharacterSpan
-                              Children = List.Empty }
+                              Children = children }
                         Container container
                 modulesOrNamespaces |> List.map sectionFromModuleOrNamespace, 
                 parsingErrors
@@ -208,7 +242,7 @@ module FileProcessor =
                                  yamlForLineSpan locationSpan)
                       
                       yield String.Format
-                                ("  span : {0}", yamlForEmptyCharacterSpan) ]
+                                ("  span : {0}", yamlForCharacterSpan span) ]
                 
                 match section with
                 | Container container -> yamlForContainer container
