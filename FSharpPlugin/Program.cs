@@ -61,13 +61,13 @@ namespace FSharpPlugin
                 try
                 {
                     FileProcessor.DiscoverStructure(pathOfFileToBeProcessed, pathOfFileForYamlResult);
+                    SignalSuccessfulRequestToProcessFile();
                 }
                 catch (Exception)
                 {
                     SignalFailedRequestToProcessFile();
                 }
-
-                SignalSuccessfulRequestToProcessFile();
+                
             } while (true);
         }
 
