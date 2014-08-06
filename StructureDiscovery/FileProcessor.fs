@@ -8,7 +8,7 @@ open System
 open System.Text.RegularExpressions
 
 module FileProcessor = 
-    type LineSpan = (int * int) * (int * int) // First item in sub-pair is a one-relative line position,
+    type LineSpan = pos * pos
     
     // the second is a zero-relative character position within the line.
     // The second sub-pair points one past the end of the construct,
@@ -43,8 +43,7 @@ module FileProcessor =
           Children: List<Section> }
     
     type ParsingError = 
-        { Location: int * int // First item is a one-relative line position,
-          // the second is a zero-relative character position within the line.
+        { Location: pos
           Message: string }
     
     type OverallStructure = 
@@ -78,8 +77,8 @@ module FileProcessor =
         let characterSpanFor (range: range) = 
             characterPositionFor range.Start, characterPositionFor range.End - 1
         let locationSpanFor (range: range) = 
-            (range.StartLine, range.StartColumn), 
-            (range.EndLine, range.EndColumn)
+            mkPos range.StartLine range.StartColumn, 
+            mkPos range.EndLine range.EndColumn
         
         let textFor (range: range) = 
             let startCharacterPosition = characterPositionFor range.Start
@@ -101,8 +100,9 @@ module FileProcessor =
             let parsingErrors = 
                 resultsFromParsing.Errors |> Array.map (fun error -> 
                                                  let location = 
-                                                     error.StartLineAlternate, 
-                                                     error.StartColumn
+                                                     mkPos 
+                                                         error.StartLineAlternate 
+                                                         error.StartColumn
                                                  let message = error.Message
                                                  { Location = location
                                                    Message = message })
@@ -129,7 +129,8 @@ module FileProcessor =
                                         match patternOnLhsOfBinding with
                                         | SynPat.Named(_, name, _, _, _) -> 
                                             name.idText
-                                        | SynPat.LongIdent (name, _, _, _, _, _) -> textFor name.Range
+                                        | SynPat.LongIdent(name, _, _, _, _, _) -> 
+                                            textFor name.Range
                                         | _ -> textFor binding.RangeOfHeadPat
                                     
                                     let overallRange = 
@@ -175,7 +176,7 @@ module FileProcessor =
         
         let locationSpanForFile = 
             match sections with
-            | [] -> (0, 0), (0, 0)
+            | [] -> pos0, pos0
             | _ -> 
                 fst (List.head sections).LocationSpan, 
                 snd (Seq.last sections).LocationSpan
@@ -191,11 +192,10 @@ module FileProcessor =
                                       FooterSpan = footerSpan; 
                                       Children = children; 
                                       ParsingErrors = parsingErrors } = 
-            let yamlForLineSpan ((startLine, indexOfFirstCharacter), 
-                                 (endLine, indexOfOnePastLastCharacter)) = 
+            let yamlForLineSpan (start: pos, onePastEnd: pos) = 
                 String.Format
-                    ("{{start: [{0},{1}], end: [{2},{3}]}}", startLine, 
-                     indexOfFirstCharacter, endLine, indexOfOnePastLastCharacter)
+                    ("{{start: [{0},{1}], end: [{2},{3}]}}", start.Line, 
+                     start.Column, onePastEnd.Line, onePastEnd.Column)
             let yamlForCharacterSpan (indexOfFirstCharacter, 
                                       indexOfLastCharacter) = 
                 String.Format
@@ -249,10 +249,10 @@ module FileProcessor =
                 | Container container -> yamlForContainer container
                 | Terminal terminal -> yamlForTerminal terminal
             
-            let yamlForParsingError { Location = line, indexOfCharacter; 
-                                      Message = message } = 
+            let yamlForParsingError { Location = location; Message = message } = 
                 [ yield String.Format
-                            ("- location: [{0},{1}]", line, indexOfCharacter)
+                            ("- location: [{0},{1}]", location.Line, 
+                             location.Column)
                   
                   yield String.Format
                             ("  message: \"{0}\"", message.Replace("\"", "\\\"")) ]
