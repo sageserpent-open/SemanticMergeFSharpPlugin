@@ -68,16 +68,28 @@ module FileProcessor =
             [| for lineMatch in lineMatches do
                    yield lineMatch.Index |]
         
-        let characterPositionFor (position: pos) = 
-            let onePastLineBreakPositionInInputFile = 
-                onePastLineBreakPositionsInInputFile.[position.Line - 1]
-            onePastLineBreakPositionInInputFile + position.Column
+        let numberOfLinesInInputFile = 
+            onePastLineBreakPositionsInInputFile.Length
+        let startLocation = mkPos 1 0
+        let endLocation = 
+            mkPos numberOfLinesInInputFile 
+                (contentsOfInputFile.Length 
+                 - onePastLineBreakPositionsInInputFile.[numberOfLinesInInputFile 
+                                                         - 1])
         
-        let characterSpanFor (range: range) = 
-            characterPositionFor range.Start, characterPositionFor range.End - 1
+        let characterPositionFrom (line, column) = 
+            let onePastLineBreakPositionInInputFile = 
+                onePastLineBreakPositionsInInputFile.[line - 1]
+            onePastLineBreakPositionInInputFile + column
+        
+        let characterPositionFor (position: pos) = 
+            characterPositionFrom (position.Line, position.Column)
         let locationSpanFor (range: range) = 
             mkPos range.StartLine range.StartColumn, 
             mkPos range.EndLine range.EndColumn
+        let characterSpanFor ((startLocation, endLocation): LineSpan) = 
+            characterPositionFor startLocation, 
+            characterPositionFor endLocation - 1
         
         let textFor (range: range) = 
             let startCharacterPosition = characterPositionFor range.Start
@@ -85,6 +97,25 @@ module FileProcessor =
             contentsOfInputFile.Substring
                 (startCharacterPosition, 
                  onePastEndCharacterPosition - startCharacterPosition)
+        
+        let adjustLineAndColumnToPreceedingCharacterPosition (line, column) = 
+            if 0 < column then line, column - 1
+            else if 1 = line then 
+                failwith 
+                    "Precondition violation: there is no character position preceeding the start of the input file."
+            else 
+                let preceedingLine = line - 1
+                let onePastPreceedingLineBreakPositionInInputFile = 
+                    onePastLineBreakPositionsInInputFile.[preceedingLine - 1]
+                
+                let lengthOfPreceedingLine = 
+                    if 1 = preceedingLine then 
+                        onePastPreceedingLineBreakPositionInInputFile
+                    else 
+                        onePastPreceedingLineBreakPositionInInputFile 
+                        - onePastLineBreakPositionsInInputFile.[preceedingLine 
+                                                                - 2]
+                preceedingLine, lengthOfPreceedingLine - 1
         
         let sections, parsingErrors = 
             let fakeProjectOptions = 
@@ -134,14 +165,14 @@ module FileProcessor =
                                     
                                     let overallRange = 
                                         binding.RangeOfBindingAndRhs
-                                    let patternRange = binding.RangeOfHeadPat
+                                    let locationSpan = 
+                                        locationSpanFor overallRange
                                     
                                     let terminal = 
                                         { Type = "let"
                                           Name = name
-                                          LocationSpan = 
-                                              locationSpanFor overallRange
-                                          Span = characterSpanFor overallRange }
+                                          LocationSpan = locationSpan
+                                          Span = characterSpanFor locationSpan }
                                     Terminal terminal
                                 bindings |> List.map childFrom
                             | _ -> List.empty
@@ -185,6 +216,73 @@ module FileProcessor =
               LocationSpan = locationSpanForFile
               Children = sections
               ParsingErrors = parsingErrors }
+        
+        let adjustSpansToCoverInputFile ({ LocationSpan = unadjustedStartLocation, 
+                                                          unadjustedEndLocation; 
+                                           Children = children } as overallStructure: OverallStructure) = 
+            let adjustedLocationSpan = startLocation, endLocation
+            let adjustStartOfSectionToAlignWith (section, alignmentPosition) = 
+                section
+            
+            let adjustedChildren = 
+                match children with
+                | [] -> []
+                | _ -> 
+                    let childrenPairedOffWithTheirAlignments = 
+                        [ yield children |> List.head, unadjustedStartLocation
+                          
+                          yield! children
+                                 |> Seq.pairwise
+                                 |> Seq.map 
+                                        (function 
+                                        | predecessor, successor -> 
+                                            successor, 
+                                            snd predecessor.LocationSpan) ]
+                    childrenPairedOffWithTheirAlignments 
+                    |> List.map adjustStartOfSectionToAlignWith
+            
+            let syntheticChildToAlignWithStartOfFile = 
+                if posLt startLocation unadjustedStartLocation then 
+                    let locationSpan = startLocation, unadjustedStartLocation
+                    { Type = "fragment"
+                      Name = "Beginning of file."
+                      LocationSpan = locationSpan
+                      Span = characterSpanFor locationSpan }
+                    |> Terminal
+                    |> Some
+                else None
+            
+            let syntheticChildToAlignWithEndOfFile = 
+                if posLt unadjustedEndLocation endLocation then 
+                    let locationSpan = unadjustedEndLocation, endLocation
+                    { Type = "fragment"
+                      Name = "End of file."
+                      LocationSpan = locationSpan
+                      Span = characterSpanFor locationSpan }
+                    |> Terminal
+                    |> Some
+                else None
+            
+            { overallStructure with LocationSpan = adjustedLocationSpan
+                                    Children = 
+                                        match syntheticChildToAlignWithStartOfFile, 
+                                              syntheticChildToAlignWithEndOfFile with
+                                        | Some syntheticChildToAlignWithStartOfFile, 
+                                          Some syntheticChildToAlignWithEndOfFile -> 
+                                            [ yield syntheticChildToAlignWithStartOfFile
+                                              yield! adjustedChildren
+                                              
+                                              yield syntheticChildToAlignWithEndOfFile ]
+                                        | Some syntheticChildToAlignWithStartOfFile, 
+                                          None -> 
+                                            [ yield syntheticChildToAlignWithStartOfFile
+                                              yield! adjustedChildren ]
+                                        | None, 
+                                          Some syntheticChildToAlignWithEndOfFile -> 
+                                            [ yield! adjustedChildren
+                                              
+                                              yield syntheticChildToAlignWithEndOfFile ]
+                                        | None, None -> adjustedChildren }
         
         let yamlForOverallStructure { Name = name; LocationSpan = locationSpan; 
                                       Children = children; 
@@ -280,7 +378,11 @@ module FileProcessor =
             
             joinPiecesOnSeparateLines pieces
         
-        let yamlResult = yamlForOverallStructure overallStructure
+        let yamlResult = 
+            overallStructure
+            |> adjustSpansToCoverInputFile
+            |> yamlForOverallStructure
+        
         File.WriteAllText(pathOfOutputFileForYamlResult, yamlResult)
         File.WriteAllText
             (String.Format
