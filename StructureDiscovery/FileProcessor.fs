@@ -23,8 +23,7 @@ module FileProcessor =
     type Terminal = 
         { Type: string // Description of the programming language construct.
           Name: string // Identifier declared by the programming language construct.
-          LocationSpan: LineSpan
-          Span: CharacterSpan }
+          LocationSpan: LineSpan }
     
     type Section = 
         | Container of Container
@@ -168,11 +167,10 @@ module FileProcessor =
                                     let locationSpan = 
                                         locationSpanFor overallRange
                                     
-                                    let terminal = 
+                                    let terminal: Terminal = 
                                         { Type = "let"
                                           Name = name
-                                          LocationSpan = locationSpan
-                                          Span = characterSpanFor locationSpan }
+                                          LocationSpan = locationSpan }
                                     Terminal terminal
                                 bindings |> List.map childFrom
                             | _ -> List.empty
@@ -246,8 +244,7 @@ module FileProcessor =
                     let locationSpan = startLocation, unadjustedStartLocation
                     { Type = "fragment"
                       Name = "Beginning of file."
-                      LocationSpan = locationSpan
-                      Span = characterSpanFor locationSpan }
+                      Terminal.LocationSpan = locationSpan }: Terminal
                     |> Terminal
                     |> Some
                 else None
@@ -257,8 +254,7 @@ module FileProcessor =
                     let locationSpan = unadjustedEndLocation, endLocation
                     { Type = "fragment"
                       Name = "End of file."
-                      LocationSpan = locationSpan
-                      Span = characterSpanFor locationSpan }
+                      LocationSpan = locationSpan }: Terminal
                     |> Terminal
                     |> Some
                 else None
@@ -328,8 +324,8 @@ module FileProcessor =
                           yield "  children :"
                           yield! children |> yamlForSubpieces yamlForSection ]
                 
-                let yamlForTerminal { Type = typeName; Name = name; 
-                                      LocationSpan = locationSpan; Span = span } = 
+                let yamlForTerminal ({ Type = typeName; Name = name; 
+                                       LocationSpan = locationSpan }: Terminal) = 
                     [ yield String.Format("- type : {0}", typeName)
                       yield String.Format("  name : {0}", name)
                       
@@ -338,7 +334,10 @@ module FileProcessor =
                                  yamlForLineSpan locationSpan)
                       
                       yield String.Format
-                                ("  span : {0}", yamlForCharacterSpan span) ]
+                                ("  span : {0}", 
+                                 
+                                 (characterSpanFor >> yamlForCharacterSpan) 
+                                     locationSpan) ]
                 
                 match section with
                 | Container container -> yamlForContainer container
