@@ -49,7 +49,6 @@ module FileProcessor =
     type OverallStructure = 
         { Name: string // Path to file.
           LocationSpan: LineSpan
-          FooterSpan: CharacterSpan
           Children: List<Section>
           ParsingErrors: array<ParsingError> }
     
@@ -184,12 +183,10 @@ module FileProcessor =
         let overallStructure = 
             { Name = pathOfInputFile
               LocationSpan = locationSpanForFile
-              FooterSpan = emptyCharacterSpan
               Children = sections
               ParsingErrors = parsingErrors }
         
         let yamlForOverallStructure { Name = name; LocationSpan = locationSpan; 
-                                      FooterSpan = footerSpan; 
                                       Children = children; 
                                       ParsingErrors = parsingErrors } = 
             let yamlForLineSpan (start: pos, onePastEnd: pos) = 
