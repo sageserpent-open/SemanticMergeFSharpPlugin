@@ -195,16 +195,24 @@ module FileProcessor =
         let adjustSpansToCoverInputFile ({ LocationSpan = unadjustedStartLocation, 
                                                           unadjustedEndLocation; 
                                            Children = children } as overallStructure: OverallStructure) = 
-            let adjustedLocationSpan = startLocation, endLocation
-            let adjustStartOfSectionToAlignWith (section, alignmentPosition) = 
-                section
+            let rec adjustStartOfSectionToAlignWith (section, alignmentPosition) = 
+                match section with
+                | Container({ LocationSpan = _, endLocation; 
+                              HeaderSpan = startOfHeaderSpan, endOfHeaderSpan; 
+                              Children = children } as container) -> 
+                    let adjustedChildren = 
+                        adjustChildren children endOfHeaderSpan
+                    { container with Children = adjustedChildren } |> Container
+                | Terminal({ LocationSpan = _, endLocation } as terminal) -> 
+                    let locationSpan = alignmentPosition, endLocation
+                    { terminal with LocationSpan = locationSpan } |> Terminal
             
-            let adjustedChildren = 
+            and adjustChildren children startAlignment = 
                 match children with
                 | [] -> []
                 | _ -> 
                     let childrenPairedOffWithTheirAlignments = 
-                        [ yield children |> List.head, unadjustedStartLocation
+                        [ yield children |> List.head, startAlignment
                           
                           yield! children
                                  |> Seq.pairwise
@@ -212,16 +220,22 @@ module FileProcessor =
                                         (function 
                                         | predecessor, successor -> 
                                             successor, 
-                                            snd predecessor.LocationSpan) ]
+                                            
+                                            snd 
+                                                (predecessor: Section).LocationSpan) ]
                     childrenPairedOffWithTheirAlignments 
                     |> List.map adjustStartOfSectionToAlignWith
+            
+            let adjustedLocationSpan = startLocation, endLocation
+            let adjustedChildren = 
+                adjustChildren children unadjustedStartLocation
             
             let syntheticChildToAlignWithStartOfFile = 
                 if posLt startLocation unadjustedStartLocation then 
                     let locationSpan = startLocation, unadjustedStartLocation
                     { Type = "fragment"
                       Name = "Beginning of file."
-                      Terminal.LocationSpan = locationSpan }: Terminal
+                      LocationSpan = locationSpan }: Terminal
                     |> Terminal
                     |> Some
                 else None
