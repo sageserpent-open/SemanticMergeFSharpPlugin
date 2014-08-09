@@ -18,8 +18,6 @@ module FileProcessor =
     // within one line or spans several.
     type CharacterSpan = int * int // [] interval using zero-relative character position.
     
-    let emptyCharacterSpan = (0, -1)
-    
     type Terminal = 
         { Type: string // Description of the programming language construct.
           Name: string // Identifier declared by the programming language construct.
@@ -37,8 +35,8 @@ module FileProcessor =
         { Type: string // Description of the programming language construct.
           Name: string // Identifier declared by the programming language construct.
           LocationSpan: LineSpan
-          HeaderSpan: CharacterSpan
-          FooterSpan: CharacterSpan
+          HeaderSpan: LineSpan
+          FooterSpan: LineSpan
           Children: List<Section> }
     
     type ParsingError = 
@@ -75,6 +73,7 @@ module FileProcessor =
                 (contentsOfInputFile.Length 
                  - onePastLineBreakPositionsInInputFile.[numberOfLinesInInputFile 
                                                          - 1])
+        let emptyLocationSpan = startLocation, startLocation
         
         let characterPositionFrom (line, column) = 
             let onePastLineBreakPositionInInputFile = 
@@ -86,7 +85,7 @@ module FileProcessor =
         let locationSpanFor (range: range) = 
             mkPos range.StartLine range.StartColumn, 
             mkPos range.EndLine range.EndColumn
-        let characterSpanFor ((startLocation, endLocation): LineSpan) = 
+        let characterSpanFor (startLocation, endLocation) = 
             characterPositionFor startLocation, 
             characterPositionFor endLocation - 1
         
@@ -96,25 +95,6 @@ module FileProcessor =
             contentsOfInputFile.Substring
                 (startCharacterPosition, 
                  onePastEndCharacterPosition - startCharacterPosition)
-        
-        let adjustLineAndColumnToPreceedingCharacterPosition (line, column) = 
-            if 0 < column then line, column - 1
-            else if 1 = line then 
-                failwith 
-                    "Precondition violation: there is no character position preceeding the start of the input file."
-            else 
-                let preceedingLine = line - 1
-                let onePastPreceedingLineBreakPositionInInputFile = 
-                    onePastLineBreakPositionsInInputFile.[preceedingLine - 1]
-                
-                let lengthOfPreceedingLine = 
-                    if 1 = preceedingLine then 
-                        onePastPreceedingLineBreakPositionInInputFile
-                    else 
-                        onePastPreceedingLineBreakPositionInInputFile 
-                        - onePastLineBreakPositionsInInputFile.[preceedingLine 
-                                                                - 2]
-                preceedingLine, lengthOfPreceedingLine - 1
         
         let sections, parsingErrors = 
             let fakeProjectOptions = 
@@ -187,11 +167,8 @@ module FileProcessor =
                               Name = longIdentifierFrom longIdentifierPieces
                               LocationSpan = locationSpanFor overallRange
                               HeaderSpan = 
-                                  characterPositionFor overallRange.Start, 
-                                  
-                                  characterPositionFor 
-                                      endOfTheModuleNamePosition - 1
-                              FooterSpan = emptyCharacterSpan
+                                  overallRange.Start, endOfTheModuleNamePosition
+                              FooterSpan = emptyLocationSpan
                               Children = children }
                         Container container
                 modulesOrNamespaces |> List.map sectionFromModuleOrNamespace, 
@@ -287,8 +264,8 @@ module FileProcessor =
                 String.Format
                     ("{{start: [{0},{1}], end: [{2},{3}]}}", start.Line, 
                      start.Column, onePastEnd.Line, onePastEnd.Column)
-            let yamlForCharacterSpan (indexOfFirstCharacter, 
-                                      indexOfLastCharacter) = 
+            let yamlForCharacterSpan ((indexOfFirstCharacter, 
+                                       indexOfLastCharacter): CharacterSpan) = 
                 String.Format
                     ("[{0}, {1}]", indexOfFirstCharacter, indexOfLastCharacter)
             let yamlForEmptyCharacterSpan = "[0, -1]"
@@ -312,14 +289,14 @@ module FileProcessor =
                       yield String.Format
                                 ("  locationSpan : {0}", 
                                  yamlForLineSpan locationSpan)
-                      
-                      yield String.Format
-                                ("  headerSpan : {0}", 
-                                 yamlForCharacterSpan headerSpan)
-                      
-                      yield String.Format
-                                ("  footerSpan : {0}", 
-                                 yamlForCharacterSpan footerSpan)
+                      yield String.Format("  headerSpan : {0}", 
+                                          headerSpan
+                                          |> characterSpanFor
+                                          |> yamlForCharacterSpan)
+                      yield String.Format("  footerSpan : {0}", 
+                                          footerSpan
+                                          |> characterSpanFor
+                                          |> yamlForCharacterSpan)
                       if not children.IsEmpty then 
                           yield "  children :"
                           yield! children |> yamlForSubpieces yamlForSection ]
@@ -332,12 +309,10 @@ module FileProcessor =
                       yield String.Format
                                 ("  locationSpan : {0}", 
                                  yamlForLineSpan locationSpan)
-                      
-                      yield String.Format
-                                ("  span : {0}", 
-                                 
-                                 (characterSpanFor >> yamlForCharacterSpan) 
-                                     locationSpan) ]
+                      yield String.Format("  span : {0}", 
+                                          locationSpan
+                                          |> characterSpanFor
+                                          |> yamlForCharacterSpan) ]
                 
                 match section with
                 | Container container -> yamlForContainer container
@@ -354,7 +329,7 @@ module FileProcessor =
             let pieces = 
                 [ yield "---"
                   yield "type : file"
-                  yield String.Format("name : {0}", pathOfInputFile)
+                  yield String.Format("name : {0}", name)
                   
                   yield String.Format
                             ("locationSpan : {0}", yamlForLineSpan locationSpan)
