@@ -1,9 +1,11 @@
 SemanticMergeFSharpPlugin
 =========================
 
-Open-source plugin to allow Codice's commercial Semantic Merge product to handle FSharp. Unsupported proof-of-concept, you'll have to figure out how to deploy it.
+Open source plugin to allow Codice's commercial Semantic Merge product to handle FSharp. _Unsupported and unmaintained proof-of-concept, it has a very long way to go before it covers the full F# grammar, it has at least one known bug and you'll have to figure out how to deploy it_.
 
-THIS IS WORK IN PROGRESS AND WILL PROBABLY DESTROY YOUR COMPUTER - STAY AWAY UNLESS YOU ARE WEARING PROTECTIVE CLOTHING.
+__THIS IS WORK IN PROGRESS AND WILL PROBABLY DESTROY YOUR COMPUTER - STAY AWAY UNLESS YOU ARE WEARING PROTECTIVE CLOTHING__.
+
+Please fork this repository and extend it, right now the Scala plugin gets my full attention while this one languishes.
 
 License
 =======
